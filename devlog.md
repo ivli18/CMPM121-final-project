@@ -1,13 +1,13 @@
 ## Introducing the team
 
-- **Engine Lead: Bryce**  
-  Bryce is leading our technical architecture, researching engine options, and guiding how we structure our codebase. He’ll help the team get up to speed with whatever platform we choose and aim to shield us from unnecessary complexity.
+### Engine Lead: Bryce
+Bryce is leading our technical architecture, researching engine options, and guiding how we structure our codebase. He’ll help the team get up to speed with whatever platform we choose and aim to shield us from unnecessary complexity.
 
-- **Design Lead: Shawn**  
-  Shawn is driving the creative vision — shaping the game’s look, feel, and player experience. He’ll be prototyping visual ideas and helping align our code and assets around a cohesive design language.
+### Design Lead: Shawn
+Shawn is driving the creative vision — shaping the game’s look, feel, and player experience. He’ll be prototyping visual ideas and helping align our code and assets around a cohesive design language.
 
-- **Tools & Testing Lead: Ivan**  
-  Ivan is overseeing our development tooling (like Git, GitHub, and editor setup), ensuring smooth collaboration. He’ll also lead testing efforts — both automated checks and organizing playtests — to keep quality high.
+### Tools & Testing Lead: Ivan
+Ivan is overseeing our development tooling (like Git, GitHub, and editor setup), ensuring smooth collaboration. He’ll also lead testing efforts — both automated checks and organizing playtests — to keep quality high.
 
 Since we’re a small team, we’ll stay flexible: everyone will contribute ideas across domains and support each other wherever needed.
 
@@ -35,8 +35,8 @@ We plan to use generative AI tools—like GitHub Copilot—as **optional assista
 
 ## Outlook
 
-### We’re not trying to build anything super technical—our focus is more on the game’s design and making sure it feels fun and intuitive. We think keeping things simple helps us stay on track and actually finish what we start.
+We’re not trying to build anything super technical—our focus is more on the game’s design and making sure it feels fun and intuitive. We think keeping things simple helps us stay on track and actually finish what we start.
 
-### Right now, the hardest part is probably going to be scope and timing. We don’t have every detail locked down yet, and since we’re a new team, we’re still figuring out how to work together smoothly. We’re using GitHub to help, but we know it’ll take some practice to get everyone on the same page.
+Right now, the hardest part is probably going to be scope and timing. We don’t have every detail locked down yet, and since we’re a new team, we’re still figuring out how to work together smoothly. We’re using GitHub to help, but we know it’ll take some practice to get everyone on the same page.
 
-### As for learning, we’re hoping to get more comfortable with DOM manipulation in TypeScript—building things in code instead of just writing HTML. And honestly, just learning how to collaborate better as a team is a big part of why we’re doing this.
+As for learning, we’re hoping to get more comfortable with DOM manipulation in TypeScript—building things in code instead of just writing HTML. And honestly, just learning how to collaborate better as a team is a big part of why we’re doing this.
