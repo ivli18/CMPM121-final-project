@@ -1,0 +1,31 @@
+{
+  "name": "cmpm121-final-project",
+  "version": "1.0.0",
+  "description": "This repository contains the introductory devlog for our final project team.",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "prepare": "husky"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ivli18/CMPM121-final-project.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ivli18/CMPM121-final-project/issues"
+  },
+  "homepage": "https://github.com/ivli18/CMPM121-final-project#readme",
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0",
+    "husky": "^9.1.7",
+    "prettier": "^3.6.2",
+    "typescript-eslint": "^8.47.0"
+  }
+}
