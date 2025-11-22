@@ -2,15 +2,15 @@
 
 // Wrapper for a WebGL context and its associated canvas
 export class GLContext {
-  canvas: HTMLCanvasElement;
-  gl: WebGLRenderingContext | WebGL2RenderingContext;
+  public readonly canvas: HTMLCanvasElement;
+  public readonly gl: WebGL2RenderingContext;
 
   constructor(canvas: HTMLCanvasElement){
     if (!canvas) {
         throw new Error("Canvas element is undefined.");
     }
     this.canvas = canvas;
-    const gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
+    const gl = canvas.getContext("webgl2");
     if (!gl) {
       throw new Error("Unable to initialize WebGL. Your browser may not support it.");
     }
@@ -24,7 +24,7 @@ export class GLContext {
         const gl = this.gl;
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clearColor(0.5, 0.7, 1.0, 1.0);
         gl.clearDepth(1.0);
         gl.enable(gl.CULL_FACE);
         gl.cullFace(gl.BACK);
