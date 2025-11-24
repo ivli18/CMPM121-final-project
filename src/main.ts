@@ -127,31 +127,105 @@ function bootstrap() {
   // A unit cube centered at origin, we’ll scale/position via model matrix.
   const cubePositions = [
     // front
-    -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5,
+    -0.5,
+    -0.5,
+    0.5,
+    0.5,
+    -0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    -0.5,
+    0.5,
+    0.5,
     // back
-    -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, -0.5,
+    -0.5,
+    -0.5,
+    -0.5,
+    0.5,
+    -0.5,
+    -0.5,
+    0.5,
+    0.5,
+    -0.5,
+    -0.5,
+    0.5,
+    -0.5,
   ];
 
   const cubeColors = [
     // front (red-ish)
-    1, 0, 0, 1, 0.3, 0.3, 1, 0.3, 0.3, 1, 0, 0,
+    1,
+    0,
+    0,
+    1,
+    0.3,
+    0.3,
+    1,
+    0.3,
+    0.3,
+    1,
+    0,
+    0,
     // back (orange-ish)
-    1, 0.6, 0.2, 1, 0.8, 0.3, 1, 0.8, 0.3, 1, 0.6, 0.2,
+    1,
+    0.6,
+    0.2,
+    1,
+    0.8,
+    0.3,
+    1,
+    0.8,
+    0.3,
+    1,
+    0.6,
+    0.2,
   ];
 
   const cubeIndices = [
     // front
-    0, 1, 2, 0, 2, 3,
+    0,
+    1,
+    2,
+    0,
+    2,
+    3,
     // right
-    1, 5, 6, 1, 6, 2,
+    1,
+    5,
+    6,
+    1,
+    6,
+    2,
     // back
-    5, 4, 7, 5, 7, 6,
+    5,
+    4,
+    7,
+    5,
+    7,
+    6,
     // left
-    4, 0, 3, 4, 3, 7,
+    4,
+    0,
+    3,
+    4,
+    3,
+    7,
     // top
-    3, 2, 6, 3, 6, 7,
+    3,
+    2,
+    6,
+    3,
+    6,
+    7,
     // bottom
-    4, 5, 1, 4, 1, 0,
+    4,
+    5,
+    1,
+    4,
+    1,
+    0,
   ];
 
   const character = createDrawable(
@@ -171,23 +245,65 @@ function bootstrap() {
   // --------- Geometry: win condition (small pyramid) ---------
   const winconPositions = [
     // base
-    -0.3, 0, -0.3, 0.3, 0, -0.3, 0.3, 0, 0.3, -0.3, 0, 0.3,
+    -0.3,
+    0,
+    -0.3,
+    0.3,
+    0,
+    -0.3,
+    0.3,
+    0,
+    0.3,
+    -0.3,
+    0,
+    0.3,
     // apex
-    0, 0.6, 0,
+    0,
+    0.6,
+    0,
   ];
 
   const winconColors = [
     // base (yellow)
-    1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0,
+    1,
+    1,
+    0,
+    1,
+    1,
+    0,
+    1,
+    1,
+    0,
+    1,
+    1,
+    0,
     // apex (bright yellow)
-    1, 1, 0.5,
+    1,
+    1,
+    0.5,
   ];
 
   const winconIndices = [
     // base
-    0, 1, 2, 0, 2, 3,
+    0,
+    1,
+    2,
+    0,
+    2,
+    3,
     // sides
-    0, 4, 1, 1, 4, 2, 2, 4, 3, 3, 4, 0,
+    0,
+    4,
+    1,
+    1,
+    4,
+    2,
+    2,
+    4,
+    3,
+    3,
+    4,
+    0,
   ];
 
   const wincon = createDrawable(
@@ -201,6 +317,145 @@ function bootstrap() {
   mat4.fromTranslation(wincon.modelMatrix, winconPos);
 
   let winconCollected = false;
+
+  // --------- Geometry: collectibles (small cubes) ---------
+  const collectiblePositions = [
+    // front
+    -0.2,
+    -0.2,
+    0.2,
+    0.2,
+    -0.2,
+    0.2,
+    0.2,
+    0.2,
+    0.2,
+    -0.2,
+    0.2,
+    0.2,
+    // back
+    -0.2,
+    -0.2,
+    -0.2,
+    0.2,
+    -0.2,
+    -0.2,
+    0.2,
+    0.2,
+    -0.2,
+    -0.2,
+    0.2,
+    -0.2,
+  ];
+
+  const collectibleColors = [
+    // front (cyan)
+    0,
+    1,
+    1,
+    0,
+    1,
+    1,
+    0,
+    1,
+    1,
+    0,
+    1,
+    1,
+    // back (cyan)
+    0,
+    0.8,
+    0.8,
+    0,
+    0.8,
+    0.8,
+    0,
+    0.8,
+    0.8,
+    0,
+    0.8,
+    0.8,
+  ];
+
+  const collectibleIndices = [
+    // front
+    0,
+    1,
+    2,
+    0,
+    2,
+    3,
+    // right
+    1,
+    5,
+    6,
+    1,
+    6,
+    2,
+    // back
+    5,
+    4,
+    7,
+    5,
+    7,
+    6,
+    // left
+    4,
+    0,
+    3,
+    4,
+    3,
+    7,
+    // top
+    3,
+    2,
+    6,
+    3,
+    6,
+    7,
+    // bottom
+    4,
+    5,
+    1,
+    4,
+    1,
+    0,
+  ];
+
+  // Create 3 collectibles at different positions
+  const collectible1 = createDrawable(
+    gl,
+    collectiblePositions,
+    collectibleColors,
+    collectibleIndices,
+    gl.TRIANGLES,
+  );
+  const collectible1Pos = vec3.fromValues(-3, 0.3, 2);
+  mat4.fromTranslation(collectible1.modelMatrix, collectible1Pos);
+
+  const collectible2 = createDrawable(
+    gl,
+    collectiblePositions,
+    collectibleColors,
+    collectibleIndices,
+    gl.TRIANGLES,
+  );
+  const collectible2Pos = vec3.fromValues(4, 0.3, 3);
+  mat4.fromTranslation(collectible2.modelMatrix, collectible2Pos);
+
+  const collectible3 = createDrawable(
+    gl,
+    collectiblePositions,
+    collectibleColors,
+    collectibleIndices,
+    gl.TRIANGLES,
+  );
+  const collectible3Pos = vec3.fromValues(-2, 0.3, -4);
+  mat4.fromTranslation(collectible3.modelMatrix, collectible3Pos);
+
+  let collectible1Collected = false;
+  let collectible2Collected = false;
+  let collectible3Collected = false;
 
   // --------- Geometry: floor grid (lines) ---------
   const gridSize = 10; // extent from center
@@ -296,11 +551,72 @@ function bootstrap() {
     mat4.fromTranslation(character.modelMatrix, playerPos);
     mat4.rotateY(character.modelMatrix, character.modelMatrix, angle);
 
-    // --- Check for win condition collision ---
+    // Spin the collectibles
+    if (!collectible1Collected) {
+      mat4.fromTranslation(collectible1.modelMatrix, collectible1Pos);
+      mat4.rotateY(
+        collectible1.modelMatrix,
+        collectible1.modelMatrix,
+        angle * 2,
+      );
+    }
+
+    if (!collectible2Collected) {
+      mat4.fromTranslation(collectible2.modelMatrix, collectible2Pos);
+      mat4.rotateY(
+        collectible2.modelMatrix,
+        collectible2.modelMatrix,
+        angle * 2,
+      );
+    }
+
+    if (!collectible3Collected) {
+      mat4.fromTranslation(collectible3.modelMatrix, collectible3Pos);
+      mat4.rotateY(
+        collectible3.modelMatrix,
+        collectible3.modelMatrix,
+        angle * 2,
+      );
+    }
+
+    // Spin the win condition
     if (!winconCollected) {
+      mat4.fromTranslation(wincon.modelMatrix, winconPos);
+      mat4.rotateY(wincon.modelMatrix, wincon.modelMatrix, angle * 2);
+    }
+
+    // --- Check for collectible collisions ---
+    if (!collectible1Collected) {
+      const dist = vec3.distance(playerPos, collectible1Pos);
+      if (dist < 1.0) {
+        collectible1Collected = true;
+        console.log("Collectible 1 found!");
+      }
+    }
+
+    if (!collectible2Collected) {
+      const dist = vec3.distance(playerPos, collectible2Pos);
+      if (dist < 1.0) {
+        collectible2Collected = true;
+        console.log("Collectible 2 found!");
+      }
+    }
+
+    if (!collectible3Collected) {
+      const dist = vec3.distance(playerPos, collectible3Pos);
+      if (dist < 1.0) {
+        collectible3Collected = true;
+        console.log("Collectible 3 found!");
+      }
+    }
+
+    // --- Check for win condition collision if all collectibles are collected ---
+    const allCollectiblesCollected = collectible1Collected &&
+      collectible2Collected && collectible3Collected;
+
+    if (!winconCollected && allCollectiblesCollected) {
       const dist = vec3.distance(playerPos, winconPos);
       if (dist < 1.0) {
-        // collision detection radius
         winconCollected = true;
         alert("You Win!");
       }
@@ -326,6 +642,46 @@ function bootstrap() {
     gl.drawElements(gl.TRIANGLES, floor.indexCount, gl.UNSIGNED_SHORT, 0);
 
     gl.bindVertexArray(null);
+
+    // draw collectibles (if not collected)
+    if (!collectible1Collected) {
+      gl.bindVertexArray(collectible1.vao);
+      mat4.multiply(tmp, vp, collectible1.modelMatrix);
+      mat4.copy(mvp, tmp);
+      gl.uniformMatrix4fv(uMVP, false, mvp);
+      gl.drawElements(
+        gl.TRIANGLES,
+        collectible1.indexCount,
+        gl.UNSIGNED_SHORT,
+        0,
+      );
+    }
+
+    if (!collectible2Collected) {
+      gl.bindVertexArray(collectible2.vao);
+      mat4.multiply(tmp, vp, collectible2.modelMatrix);
+      mat4.copy(mvp, tmp);
+      gl.uniformMatrix4fv(uMVP, false, mvp);
+      gl.drawElements(
+        gl.TRIANGLES,
+        collectible2.indexCount,
+        gl.UNSIGNED_SHORT,
+        0,
+      );
+    }
+
+    if (!collectible3Collected) {
+      gl.bindVertexArray(collectible3.vao);
+      mat4.multiply(tmp, vp, collectible3.modelMatrix);
+      mat4.copy(mvp, tmp);
+      gl.uniformMatrix4fv(uMVP, false, mvp);
+      gl.drawElements(
+        gl.TRIANGLES,
+        collectible3.indexCount,
+        gl.UNSIGNED_SHORT,
+        0,
+      );
+    }
 
     // draw win condition (if not collected)
     if (!winconCollected) {
