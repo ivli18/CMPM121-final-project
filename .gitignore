@@ -9,9 +9,11 @@ yarn-error.log*
 # Build output
 dist/
 build/
+screenshots/
 
 # OS files
 .DS_Store
 
 # VS Code settings
 .vscode/
+
