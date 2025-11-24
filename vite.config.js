@@ -1,13 +1,15 @@
-// https://vitejs.dev/config/
-export default {
-  base: process.env.REPO_NAME || '/project',
+// vite.config.js
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  base: '/CMPM121-final-project/',
   server: {
     port: 3000,
     open: true,
   },
   build: {
-    target: "esnext",
-    outDir: "dist",
+    target: 'esnext',
+    outDir: 'dist',
     sourcemap: true,
   },
-};
+});
