@@ -45,3 +45,32 @@ We’re not trying to build anything super technical—our focus is more on the 
 Right now, the hardest part is probably going to be scope and timing. We don’t have every detail locked down yet, and since we’re a new team, we’re still figuring out how to work together smoothly. We’re using GitHub to help, but we know it’ll take some practice to get everyone on the same page.
 
 As for learning, we’re hoping to get more comfortable with DOM manipulation in TypeScript—building things in code instead of just writing HTML. And honestly, just learning how to collaborate better as a team is a big part of why we’re doing this.
+
+~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
+
+## F1 Devlog
+
+
+## How we satisfied the software requirements
+
+### 1. Build using a platform that does not already provide support for 3D rendering and physics simulation.
+
+### 2. Use a third-party 3D rendering library.
+
+### 3. Use a third-party physics simulation library.
+
+### 4. Present a playable prototype with a simple physics-based puzzle.
+
+### 5. Allow the player to exert control over the simulation to succeed or fail at the puzzle.
+
+### 6. Detect success or failure and report it back to the player using the game's graphics.
+
+### 7. Include before-commit automation that helps developers.
+
+The codebase includes basic checks for both linting and autoformatting using ESLint and Prettier, respectively. The package.json defines the scripts that run these checks, and a Husky pre-commit hook ensures they execute automatically before any commit. This setup blocks commits that fail the checks, satisfying the requirement for before-commit automation.
+
+### 8. Include post-push automation that helps developers.
+
+For post-push automation, the project includes an automated deployment workflow and a basic Playwright setup. GitHub Pages automatically rebuilds and deploys the project whenever changes are pushed, keeping the live version consistently updated. In addition, we currently have Playwright scripts that can generate screenshots and run simple interaction sequences, demonstrating that our codebase supports automated post-push checks even if these scripts remain minimal at this stage.
+
+## Reflection
