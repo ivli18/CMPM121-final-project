@@ -54,9 +54,24 @@ As for learning, we’re hoping to get more comfortable with DOM manipulation in
 
 ### 1. Build using a platform that does not already provide support for 3D rendering and physics simulation.
 
+For this project, We intentionally chose to develop on the web platform using raw WebGL 2.0, which provides only low-level GPU access and no built-in 3D rendering pipeline or physics simulation.  This decision forced us to understand the complete 3D pipeline—buffers, VAOs, shaders, matrix transforms, and camera math—without relying on a higher-level engine.
+
 ### 2. Use a third-party 3D rendering library.
 
+While the rendering is done with WebGL directly, the project uses gl-matrix, a widely used third-party math and matrix library for JavaScript/TypeScript 3D applications.
+
+gl-matrix provides fast, SIMD-optimized functions for:
+
+* mat4 transformation matrices
+* vec3 vector operations
+* matrix composition (translation, rotation, scale)
+* camera calculations (e.g., mat4.lookAt, mat4.perspective)
+
+Because WebGL does not provide any matrix utilities out of the box, gl-matrix serves as the third-party rendering support library required by the assignment.
+
 ### 3. Use a third-party physics simulation library.
+
+Right now we are using manual collisions but plan on implementing Oimo.js which handles collision detection, rigid body behavior, and movement resolution.It fits the scope of the project because our current world is made of cubes, grids, and simple geometric obstacles—exactly the domain Oimo.js excels at.
 
 ### 4. Present a playable prototype with a simple physics-based puzzle.
 
