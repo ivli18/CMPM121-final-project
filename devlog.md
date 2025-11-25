@@ -52,11 +52,11 @@ As for learning, we’re hoping to get more comfortable with DOM manipulation in
 
 ## How we satisfied the software requirements
 
-### 1. Build using a platform that does not already provide support for 3D rendering and physics simulation
+### 1. Build using a platform that does not already provide support for 3D rendering and physics simulation.
 
 For this project, We intentionally chose to develop on the web platform using raw WebGL 2.0, which provides only low-level GPU access and no built-in 3D rendering pipeline or physics simulation.  This decision forced us to understand the complete 3D pipeline—buffers, VAOs, shaders, matrix transforms, and camera math—without relying on a higher-level engine.
 
-### 2. Use a third-party 3D rendering library
+### 2. Use a third-party 3D rendering library.
 
 While the rendering is done with WebGL directly, the project uses gl-matrix, a widely used third-party math and matrix library for JavaScript/TypeScript 3D applications.
 
@@ -69,22 +69,30 @@ gl-matrix provides fast, SIMD-optimized functions for:
 
 Because WebGL does not provide any matrix utilities out of the box, gl-matrix serves as the third-party rendering support library required by the assignment.
 
-### 3. Use a third-party physics simulation library
+### 3. Use a third-party physics simulation library.
 
 Right now we are using manual collisions but plan on implementing Oimo.js which handles collision detection, rigid body behavior, and movement resolution.It fits the scope of the project because our current world is made of cubes, grids, and simple geometric obstacles—exactly the domain Oimo.js excels at.
 
-### 4. Present a playable prototype with a simple physics-based puzzle
+### 4. Present a playable prototype with a simple physics-based puzzle.
 
-### 5. Allow the player to exert control over the simulation to succeed or fail at the puzzle
+The prototype is playable (the player can use the arrow keys to move their character), and the current version of the puzzle is more of a demonstration of the mechanics, navigating the player character to pick up the collectables before reaching the pyramid.
 
-### 6. Detect success or failure and report it back to the player using the game's graphics
+### 5. Allow the player to exert control over the simulation to succeed or fail at the puzzle.
 
-### 7. Include before-commit automation that helps developers
+The player exerts control over the outcome of the puzzle, as player input is the only way to progress toward pikcing up the required collectables and reaching the pyramid.
+
+### 6. Detect success or failure and report it back to the player using the game's graphics.
+
+The win condition requires the player to pick up all the collectables before collecting the pyramid, which informs the player that they have won and also shows this feedback graphiclly by collecting the pyramid.
+
+### 7. Include before-commit automation that helps developers.
 
 The codebase includes basic checks for both linting and autoformatting using ESLint and Prettier, respectively. The package.json defines the scripts that run these checks, and a Husky pre-commit hook ensures they execute automatically before any commit. This setup blocks commits that fail the checks, satisfying the requirement for before-commit automation.
 
-### 8. Include post-push automation that helps developers
+### 8. Include post-push automation that helps developers.
 
 For post-push automation, the project includes an automated deployment workflow and a basic Playwright setup. GitHub Pages automatically rebuilds and deploys the project whenever changes are pushed, keeping the live version consistently updated. In addition, we currently have Playwright scripts that can generate screenshots and run simple interaction sequences, demonstrating that our codebase supports automated post-push checks even if these scripts remain minimal at this stage.
 
 ## Reflection
+
+I think the biggest change we plan on making in the future is how we distribute work. The roles we have picked out are helpful, but there is a lot to do outside of those areas, and they often required a volunteer to step up to make sure they got done. Something we are considering is breaking down everything that needs to be done before the next milestone right away and tasking them based on the our roles and intuitive order the tasks should be done in. Otherwise, I think our team is on track.
