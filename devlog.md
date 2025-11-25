@@ -46,10 +46,9 @@ Right now, the hardest part is probably going to be scope and timing. We don’t
 
 As for learning, we’re hoping to get more comfortable with DOM manipulation in TypeScript—building things in code instead of just writing HTML. And honestly, just learning how to collaborate better as a team is a big part of why we’re doing this.
 
--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+---
 
 ## F1 Devlog
-
 
 ## How we satisfied the software requirements
 
@@ -69,7 +68,7 @@ The player exerts control over the outcome of the puzzle, as player input is the
 
 ### 6. Detect success or failure and report it back to the player using the game's graphics.
 
-The win condition requires the player to pick up all the collectables before collecting the pyramid, which informs the player that they have won and also shows this feedback graphiclly by collecting the pyramid. 
+The win condition requires the player to pick up all the collectables before collecting the pyramid, which informs the player that they have won and also shows this feedback graphiclly by collecting the pyramid.
 
 ### 7. Include before-commit automation that helps developers.
 
