@@ -5,7 +5,6 @@ import { Shader } from "./gl/Shader.ts";
 import { mat4, vec3 } from "gl-matrix";
 import { Input } from "./core/Input.ts";
 
-// If using global OIMO (UMD script included in HTML):
 // deno-lint-ignore no-explicit-any
 declare const OIMO: any;
 
@@ -491,7 +490,7 @@ function bootstrap() {
 
     gl.bindVertexArray(null);
 
-    // Clear edge-triggered input if you use it
+    // Clear edge-triggered input 
     Input.update();
   });
 
