@@ -46,7 +46,7 @@ Right now, the hardest part is probably going to be scope and timing. We don’t
 
 As for learning, we’re hoping to get more comfortable with DOM manipulation in TypeScript—building things in code instead of just writing HTML. And honestly, just learning how to collaborate better as a team is a big part of why we’re doing this.
 
--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+---
 
 ## F1 Devlog
 
