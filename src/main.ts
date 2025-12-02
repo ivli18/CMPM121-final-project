@@ -141,7 +141,7 @@ const globalState = {
 
 // Persistent Inventory
 const inventory: { held: KeyColor | null } = {
-  held: "red",
+  held: null,
 };
 
 // =======================
@@ -203,9 +203,7 @@ const testScene: SceneConfig = {
     { pos: [0, 5.0, -8], size: [3, 0.5, 3] },
     { pos: [0, 7.0, -1], size: [3, 0.5, 3] },
   ],
-  keys: [
-    { id: "keyRed1", color: "red", pos: [0, 1, -5] },
-  ],
+  keys: [{ id: "keyRed1", color: "red", pos: [0, 1, -5] }],
   doors: [],
 };
 
@@ -227,7 +225,7 @@ const scene2: SceneConfig = {
   ],
   keys: [],
   doors: [
-    { id: "doorRed1", color: "red", pos: [-.5, 3, -2], size: [.5, 2.5, 3.9] },
+    { id: "doorRed1", color: "red", pos: [-0.5, 3, -2], size: [0.5, 2.5, 3.9] },
   ],
 };
 
@@ -486,6 +484,8 @@ function buildScene(
         keyState.collected = true;
         globalState.inventory.held = keyState.color;
         console.log(`Picked up ${keyState.color} key`);
+        ecs.renderables.delete(keyE);
+        ecs.interactables.delete(keyE);
       },
       onInteract() {
         onInteract(this);
@@ -542,7 +542,12 @@ function buildScene(
         ecs.interactables.delete(doorE);
       },
       onInteract() {
-        if (!this.isOpen) this.open();
+        if (inventory.held === this.color && !this.isOpen) {
+          this.open();
+        } else if (inventory.held !== this.color) {
+          console.log(`You need a ${this.color} key to open this door`);
+          showUIMessage(`You need a ${this.color} key`, 1.5);
+        }
       },
     } as Door);
   }
@@ -581,7 +586,7 @@ function buildScene(
 
 let uiMessage: string | null = null;
 let uiTimer = 0;
-function showUIMessage(msg: string, duration = .5) {
+function showUIMessage(msg: string, duration = 0.5) {
   uiMessage = msg;
   uiTimer = duration;
 }
@@ -602,11 +607,7 @@ function bootstrap() {
       uiCtx.font = "20px Arial";
       uiCtx.fillStyle = "white";
       uiCtx.textAlign = "center";
-      uiCtx.fillText(
-        uiMessage,
-        uiCanvas.width / 2,
-        uiCanvas.height - 50,
-      );
+      uiCtx.fillText(uiMessage, uiCanvas.width / 2, uiCanvas.height - 50);
       uiTimer -= dt;
       if (uiTimer <= 0) {
         uiMessage = null;
@@ -637,7 +638,7 @@ function bootstrap() {
   });
 
   const ecs = new ECS();
-  let currentSceneIndex = 1;
+  let currentSceneIndex = 0;
   const scenes = [testScene, scene2];
   let playerEntity: Entity;
 
