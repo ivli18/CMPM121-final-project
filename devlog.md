@@ -54,7 +54,7 @@ As for learning, we’re hoping to get more comfortable with DOM manipulation in
 
 ### 1. Build using a platform that does not already provide support for 3D rendering and physics simulation.
 
-For this project, We intentionally chose to develop on the web platform using raw WebGL 2.0, which provides only low-level GPU access and no built-in 3D rendering pipeline or physics simulation.  This decision forced us to understand the complete 3D pipeline—buffers, VAOs, shaders, matrix transforms, and camera math—without relying on a higher-level engine.
+For this project, We intentionally chose to develop on the web platform using raw WebGL 2.0, which provides only low-level GPU access and no built-in 3D rendering pipeline or physics simulation. This decision forced us to understand the complete 3D pipeline—buffers, VAOs, shaders, matrix transforms, and camera math—without relying on a higher-level engine.
 
 ### 2. Use a third-party 3D rendering library.
 
@@ -62,10 +62,10 @@ While the rendering is done with WebGL directly, the project uses gl-matrix, a w
 
 gl-matrix provides fast, SIMD-optimized functions for:
 
-* mat4 transformation matrices
-* vec3 vector operations
-* matrix composition (translation, rotation, scale)
-* camera calculations (e.g., mat4.lookAt, mat4.perspective)
+- mat4 transformation matrices
+- vec3 vector operations
+- matrix composition (translation, rotation, scale)
+- camera calculations (e.g., mat4.lookAt, mat4.perspective)
 
 Because WebGL does not provide any matrix utilities out of the box, gl-matrix serves as the third-party rendering support library required by the assignment.
 

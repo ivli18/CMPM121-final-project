@@ -154,6 +154,24 @@ const testScene: SceneConfig = {
   ],
 };
 
+const scene2: SceneConfig = {
+  playerStart: [0, 0.5, 0],
+  winconPos: [0, 9.5, -12],
+  collectibles: [
+    [4, 2.5, -2],
+    [-4, 4.5, -5],
+    [3, 6.5, -9],
+    [-3, 8.5, -11],
+  ],
+  platforms: [
+    { pos: [0, 2.0, -2], size: [6, 0.5, 4] },
+    { pos: [-4, 4.0, -5], size: [3, 0.5, 3] },
+    { pos: [3, 6.0, -9], size: [4, 0.5, 4] },
+    { pos: [-3, 8.0, -11], size: [3, 0.5, 3] },
+    { pos: [0, 9.0, -12], size: [3, 0.5, 3] },
+  ],
+};
+
 // =======================
 // Helpers
 // =======================
@@ -410,7 +428,7 @@ function bootstrap() {
   if (!uMVP) throw new Error("Failed to get uMVP uniform");
 
   // ---------- Physics World ----------
-  const world = new OIMO.World({
+  let world = new OIMO.World({
     timestep: 1 / 60,
     iterations: 8,
     broadphase: 2,
@@ -421,6 +439,9 @@ function bootstrap() {
   });
 
   const ecs = new ECS();
+  let currentSceneIndex = 0;
+  const scenes = [testScene, scene2];
+  let playerEntity: Entity;
 
   // ---------- Shared Geometry ----------
   // Cube geometry shared by player/platforms/collectibles
@@ -714,15 +735,43 @@ function bootstrap() {
     floorGrid,
   };
 
-  // Build the scene from config
-  const { playerEntity } = buildScene(
-    gl,
-    world as unknown as OIMOPhysicsWorld,
-    ecs,
-    meshes,
-    testScene,
-    gridSize,
-  );
+  world = loadScene(currentSceneIndex);
+
+  function loadScene(sceneIndex: number) {
+    // Clear ECS
+    ecs.transforms.clear();
+    ecs.renderables.clear();
+    ecs.physicsBodies.clear();
+    ecs.collectibles.clear();
+    ecs.winConditions.clear();
+    ecs.platforms.clear();
+    ecs.players.clear();
+
+    // Reset physics world (recreate it)
+    const newWorld = new OIMO.World({
+      timestep: 1 / 60,
+      iterations: 8,
+      broadphase: 2,
+      worldscale: 1,
+      random: true,
+      info: false,
+      gravity: [0, -9.8, 0],
+    });
+
+    // Build the new scene
+    const result = buildScene(
+      gl,
+      newWorld as unknown as OIMOPhysicsWorld,
+      ecs,
+      meshes,
+      scenes[sceneIndex],
+      gridSize,
+    );
+
+    playerEntity = result.playerEntity;
+
+    return newWorld;
+  }
 
   // =======================
   // Camera setup
@@ -890,7 +939,15 @@ function bootstrap() {
         const dist = vec3.distance(playerPos, t.position);
         if (dist < win.radius) {
           win.completed = true;
-          alert("You Win!");
+          currentSceneIndex++;
+
+          if (currentSceneIndex < scenes.length) {
+            console.log(`Loading scene ${currentSceneIndex + 1}...`);
+            world = loadScene(currentSceneIndex);
+            physicsAccumulator = 0;
+          } else {
+            alert("You Win!");
+          }
         }
       }
     }
