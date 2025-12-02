@@ -33,7 +33,6 @@ interface OIMOBody {
   getPosition(): { x: number; y: number; z: number };
   linearVelocity: { x: number; y: number; z: number }; // fallback
 }
-
 // =======================
 // Shader sources
 // =======================
@@ -87,19 +86,63 @@ interface PhysicsBody {
   body: OIMOBody;
 }
 
-interface Collectible {
-  collected: boolean;
-  radius: number;
-}
-
-interface WinCondition {
-  completed: boolean;
-  radius: number;
-}
-
 interface Platform {
   topY: number; // top surface height in world space
 }
+
+// Objects with proximity triggers
+interface ProximityTrigger {
+  triggerRadius: number;
+}
+
+interface Interactable extends ProximityTrigger {
+  onInteract(): void;
+}
+
+interface Collectible extends ProximityTrigger {
+  isCollected: boolean;
+}
+
+type KeyColor = "red" | "green" | "blue";
+interface Key extends Interactable {
+  color: KeyColor;
+  collect(): void;
+}
+
+type DoorColor = "red" | "green" | "blue";
+interface Door extends Interactable {
+  color: DoorColor;
+  isOpen: boolean;
+  open(): void;
+}
+
+interface WinCondition extends ProximityTrigger {
+  completed: boolean;
+}
+
+// Persistent Global State
+interface GlobalKeyState {
+  color: KeyColor;
+  collected: boolean;
+}
+
+interface GlobalDoorState {
+  color: DoorColor;
+  isOpen: boolean;
+}
+
+const globalState = {
+  inventory: {
+    held: null as KeyColor | null,
+  },
+  keys: new Map<string, GlobalKeyState>(),
+  doors: new Map<string, GlobalDoorState>(),
+};
+
+// Persistent Inventory
+const inventory: { held: KeyColor | null } = {
+  held: "red",
+};
 
 // =======================
 // ECS Registry
@@ -113,6 +156,7 @@ class ECS {
   renderables = new Map<Entity, Renderable>();
   physicsBodies = new Map<Entity, PhysicsBody>();
   collectibles = new Map<Entity, Collectible>();
+  interactables = new Map<Entity, Interactable>();
   winConditions = new Map<Entity, WinCondition>();
   platforms = new Map<Entity, Platform>();
   players = new Set<Entity>(); // tags
@@ -135,6 +179,13 @@ interface SceneConfig {
   winconPos: [number, number, number];
   collectibles: [number, number, number][];
   platforms: PlatformConfig[];
+  keys?: { id: string; color: KeyColor; pos: [number, number, number] }[];
+  doors?: {
+    id: string;
+    color: DoorColor;
+    pos: [number, number, number];
+    size: [number, number, number];
+  }[];
 }
 
 // Example scene (we can make more later)
@@ -152,6 +203,10 @@ const testScene: SceneConfig = {
     { pos: [0, 5.0, -8], size: [3, 0.5, 3] },
     { pos: [0, 7.0, -1], size: [3, 0.5, 3] },
   ],
+  keys: [
+    { id: "keyRed1", color: "red", pos: [0, 1, -5] },
+  ],
+  doors: [],
 };
 
 const scene2: SceneConfig = {
@@ -164,11 +219,15 @@ const scene2: SceneConfig = {
     [-3, 8.5, -11],
   ],
   platforms: [
-    { pos: [0, 2.0, -2], size: [6, 0.5, 4] },
+    { pos: [1, 2.0, -2], size: [4, 0.5, 4] },
     { pos: [-4, 4.0, -5], size: [3, 0.5, 3] },
-    { pos: [3, 6.0, -9], size: [4, 0.5, 4] },
+    { pos: [3, 5.0, -9], size: [4, 0.5, 4] },
     { pos: [-3, 8.0, -11], size: [3, 0.5, 3] },
     { pos: [0, 9.0, -12], size: [3, 0.5, 3] },
+  ],
+  keys: [],
+  doors: [
+    { id: "doorRed1", color: "red", pos: [-.5, 3, -2], size: [.5, 2.5, 3.9] },
   ],
 };
 
@@ -270,6 +329,23 @@ function updateTransformMatrix(t: Transform) {
   mat4.scale(m, m, t.scale);
 }
 
+function onInteract(obj: Key | Door) {
+  if ("collect" in obj) {
+    // If Key
+    obj.collect();
+    inventory.held = obj.color;
+    console.log(`Picked up ${obj.color} key`);
+  } else if ("open" in obj) {
+    // If Door
+    if (inventory.held === obj.color) {
+      console.log(`Opened ${obj.color} door`);
+      obj.isOpen = true;
+    } else {
+      console.log(`You need a ${obj.color} key to open this door`);
+    }
+  }
+}
+
 // =======================
 // Scene building
 // =======================
@@ -279,6 +355,8 @@ interface SharedMeshes {
   platformCube: Drawable;
   winPyramid: Drawable;
   floorGrid: Drawable;
+  keyTriangle: Drawable;
+  doorRedCube: Drawable;
 }
 
 interface SceneBuildResult {
@@ -359,7 +437,7 @@ function buildScene(
 
   ecs.transforms.set(winE, winTransform);
   ecs.renderables.set(winE, { drawable: meshes.winPyramid });
-  ecs.winConditions.set(winE, { completed: false, radius: 1.0 });
+  ecs.winConditions.set(winE, { completed: false, triggerRadius: 1.0 });
 
   // ----- Collectibles -----
   for (const pos of config.collectibles) {
@@ -374,7 +452,99 @@ function buildScene(
 
     ecs.transforms.set(cE, t);
     ecs.renderables.set(cE, { drawable: meshes.collectibleCube });
-    ecs.collectibles.set(cE, { collected: false, radius: 1.0 });
+    ecs.collectibles.set(cE, { isCollected: false, triggerRadius: 1.0 });
+  }
+
+  // ----- Keys -----
+  for (const keyData of config.keys ?? []) {
+    if (!globalState.keys.has(keyData.id)) {
+      globalState.keys.set(keyData.id, {
+        color: keyData.color,
+        collected: false,
+      });
+    }
+
+    const keyState = globalState.keys.get(keyData.id)!;
+    if (keyState.collected) continue;
+
+    const keyE = ecs.createEntity();
+    const t: Transform = {
+      position: vec3.fromValues(...keyData.pos),
+      rotation: vec3.fromValues(0, 0, 0),
+      scale: vec3.fromValues(1, 1, 1),
+      matrix: mat4.create(),
+    };
+    updateTransformMatrix(t);
+
+    ecs.transforms.set(keyE, t);
+    ecs.renderables.set(keyE, { drawable: meshes.keyTriangle });
+
+    ecs.interactables.set(keyE, {
+      triggerRadius: 1.0,
+      color: keyState.color,
+      collect() {
+        keyState.collected = true;
+        globalState.inventory.held = keyState.color;
+        console.log(`Picked up ${keyState.color} key`);
+      },
+      onInteract() {
+        onInteract(this);
+      },
+    } as Key);
+  }
+
+  // ----- Doors -----
+  for (const doorData of config.doors ?? []) {
+    if (!globalState.doors.has(doorData.id)) {
+      globalState.doors.set(doorData.id, {
+        color: doorData.color,
+        isOpen: false,
+      });
+    }
+
+    const doorState = globalState.doors.get(doorData.id)!;
+    if (doorState.isOpen) continue;
+
+    const doorE = ecs.createEntity();
+    const t: Transform = {
+      position: vec3.fromValues(...doorData.pos),
+      rotation: vec3.fromValues(0, 0, 0),
+      scale: vec3.fromValues(...doorData.size),
+      matrix: mat4.create(),
+    };
+    updateTransformMatrix(t);
+
+    ecs.transforms.set(doorE, t);
+    ecs.renderables.set(doorE, { drawable: meshes.doorRedCube });
+
+    // --- Add physics ---
+    const doorBody = createBoxBody({
+      world,
+      size: doorData.size,
+      pos: doorData.pos,
+      move: false, // static
+    });
+    ecs.physicsBodies.set(doorE, { body: doorBody });
+
+    ecs.interactables.set(doorE, {
+      triggerRadius: 2.0,
+      color: doorState.color,
+      isOpen: doorState.isOpen,
+      open() {
+        doorState.isOpen = true;
+        console.log(`Opened ${doorState.color} door`);
+
+        // Remove door from ECS
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (world as any).removeRigidBody(doorBody);
+        ecs.renderables.delete(doorE);
+        ecs.physicsBodies.delete(doorE);
+        ecs.interactables.delete(doorE);
+      },
+      onInteract() {
+        if (!this.isOpen) this.open();
+      },
+    } as Door);
   }
 
   // ----- Raised Platforms -----
@@ -409,6 +579,13 @@ function buildScene(
   return { playerEntity: playerE };
 }
 
+let uiMessage: string | null = null;
+let uiTimer = 0;
+function showUIMessage(msg: string, duration = .5) {
+  uiMessage = msg;
+  uiTimer = duration;
+}
+
 // =======================
 // Main bootstrap
 // =======================
@@ -416,6 +593,27 @@ function bootstrap() {
   Input.init();
 
   const canvas = document.getElementById("game") as HTMLCanvasElement | null;
+  const uiCanvas = document.getElementById("ui") as HTMLCanvasElement;
+  const uiCtx = uiCanvas.getContext("2d")!;
+
+  function renderUI(dt: number) {
+    uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
+    if (uiMessage) {
+      uiCtx.font = "20px Arial";
+      uiCtx.fillStyle = "white";
+      uiCtx.textAlign = "center";
+      uiCtx.fillText(
+        uiMessage,
+        uiCanvas.width / 2,
+        uiCanvas.height - 50,
+      );
+      uiTimer -= dt;
+      if (uiTimer <= 0) {
+        uiMessage = null;
+      }
+    }
+  }
+
   if (!canvas) {
     throw new Error("Canvas element with id 'game' not found");
   }
@@ -439,7 +637,7 @@ function bootstrap() {
   });
 
   const ecs = new ECS();
-  let currentSceneIndex = 0;
+  let currentSceneIndex = 1;
   const scenes = [testScene, scene2];
   let playerEntity: Entity;
 
@@ -447,9 +645,31 @@ function bootstrap() {
   // Cube geometry shared by player/platforms/collectibles
   const cubePositions = [
     // front
-    -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5,
+    -0.5,
+    -0.5,
+    0.5,
+    0.5,
+    -0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    -0.5,
+    0.5,
+    0.5,
     // back
-    -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, -0.5,
+    -0.5,
+    -0.5,
+    -0.5,
+    0.5,
+    -0.5,
+    -0.5,
+    0.5,
+    0.5,
+    -0.5,
+    -0.5,
+    0.5,
+    -0.5,
   ];
   const cubeIndices = [
     0,
@@ -493,25 +713,164 @@ function bootstrap() {
   // Player colors
   const playerCubeColors = [
     // front (red-ish)
-    1, 0, 0, 1, 0.3, 0.3, 1, 0.3, 0.3, 1, 0, 0,
+    1,
+    0,
+    0,
+    1,
+    0.3,
+    0.3,
+    1,
+    0.3,
+    0.3,
+    1,
+    0,
+    0,
     // back (orange-ish)
-    1, 0.6, 0.2, 1, 0.8, 0.3, 1, 0.8, 0.3, 1, 0.6, 0.2,
+    1,
+    0.6,
+    0.2,
+    1,
+    0.8,
+    0.3,
+    1,
+    0.8,
+    0.3,
+    1,
+    0.6,
+    0.2,
   ];
 
   // Collectible colors (cyan)
   const collectibleCubeColors = [
     // front
-    0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1,
+    0,
+    1,
+    1,
+    0,
+    1,
+    1,
+    0,
+    1,
+    1,
+    0,
+    1,
+    1,
     // back
-    0, 0.8, 0.8, 0, 0.8, 0.8, 0, 0.8, 0.8, 0, 0.8, 0.8,
+    0,
+    0.8,
+    0.8,
+    0,
+    0.8,
+    0.8,
+    0,
+    0.8,
+    0.8,
+    0,
+    0.8,
+    0.8,
   ];
+
+  // Interactables
+
+  const doorRedColors = [
+    // front
+    1,
+    0,
+    0,
+    1,
+    0,
+    0,
+    1,
+    0,
+    0,
+    1,
+    0,
+    0,
+    // back
+    1,
+    0,
+    0,
+    1,
+    0,
+    0,
+    1,
+    0,
+    0,
+    1,
+    0,
+    0,
+  ];
+
+  const doorRedCube = createDrawable(
+    gl,
+    cubePositions,
+    doorRedColors,
+    cubeIndices,
+    gl.TRIANGLES,
+  );
+
+  const keyPositions = [
+    0,
+    0.5,
+    0, // top
+    -0.5,
+    -0.5,
+    0, // bottom left
+    0.5,
+    -0.5,
+    0, // bottom right
+  ];
+
+  const keyColors = [
+    1,
+    0,
+    0, // top vertex (red)
+    1,
+    0,
+    0, // bottom left (red)
+    1,
+    0,
+    0, // bottom right (red)
+  ];
+
+  const keyIndices = [0, 1, 2];
+
+  const keyTriangle = createDrawable(
+    gl,
+    keyPositions,
+    keyColors,
+    keyIndices,
+    gl.TRIANGLES,
+  );
 
   // Platform colors (gray)
   const platformCubeColors = [
     // front
-    0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
     // back
-    0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
   ];
 
   const playerCube = createDrawable(
@@ -539,15 +898,41 @@ function bootstrap() {
   // Win condition pyramid
   const winconPositions = [
     // base
-    -0.3, 0, -0.3, 0.3, 0, -0.3, 0.3, 0, 0.3, -0.3, 0, 0.3,
+    -0.3,
+    0,
+    -0.3,
+    0.3,
+    0,
+    -0.3,
+    0.3,
+    0,
+    0.3,
+    -0.3,
+    0,
+    0.3,
     // apex
-    0, 0.6, 0,
+    0,
+    0.6,
+    0,
   ];
   const winconColors = [
     // base (yellow)
-    1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0,
+    1,
+    1,
+    0,
+    1,
+    1,
+    0,
+    1,
+    1,
+    0,
+    1,
+    1,
+    0,
     // apex
-    1, 1, 0.5,
+    1,
+    1,
+    0.5,
   ];
   const winconIndices = [
     0,
@@ -619,6 +1004,8 @@ function bootstrap() {
     platformCube,
     winPyramid,
     floorGrid,
+    keyTriangle,
+    doorRedCube,
   };
 
   world = loadScene(currentSceneIndex);
@@ -704,10 +1091,9 @@ function bootstrap() {
 
     // ---------- INPUT → Physics (movement & jump) ----------
     const body = playerPhys.body;
-    const vel =
-      typeof body.getLinearVelocity === "function"
-        ? body.getLinearVelocity()
-        : body.linearVelocity;
+    const vel = typeof body.getLinearVelocity === "function"
+      ? body.getLinearVelocity()
+      : body.linearVelocity;
     let vx = 0;
     let vz = 0;
 
@@ -762,10 +1148,9 @@ function bootstrap() {
     playerGrounded = false;
     if (playerTransform && playerPhys) {
       const body = playerPhys.body;
-      const vel2 =
-        typeof body.getLinearVelocity === "function"
-          ? body.getLinearVelocity()
-          : body.linearVelocity;
+      const vel2 = typeof body.getLinearVelocity === "function"
+        ? body.getLinearVelocity()
+        : body.linearVelocity;
       const velY = vel2.y;
 
       for (const [, platform] of ecs.platforms) {
@@ -783,7 +1168,7 @@ function bootstrap() {
     // ---------- Rotate collectibles & win condition ----------
 
     for (const [e, coll] of ecs.collectibles) {
-      if (coll.collected) continue;
+      if (coll.isCollected) continue;
       const t = ecs.transforms.get(e);
       if (!t) continue;
       t.rotation[1] += 2 * dt;
@@ -801,20 +1186,38 @@ function bootstrap() {
     // ---------- Collectible pickup ----------
     let allCollected = true;
     for (const [, coll] of ecs.collectibles) {
-      if (!coll.collected) {
+      if (!coll.isCollected) {
         allCollected = false;
         break;
       }
     }
 
     for (const [e, coll] of ecs.collectibles) {
-      if (coll.collected) continue;
+      if (coll.isCollected) continue;
       const t = ecs.transforms.get(e);
       if (!t) continue;
       const dist = vec3.distance(playerPos, t.position);
-      if (dist < coll.radius) {
-        coll.collected = true;
+      if (dist < coll.triggerRadius) {
+        coll.isCollected = true;
         console.log("Collectible picked up:", e);
+      }
+    }
+
+    // ---------- Interactable check (Keys / Doors) ----------
+    for (const [e, obj] of ecs.interactables) {
+      const t = ecs.transforms.get(e);
+      if (!t) continue;
+
+      const dist = vec3.distance(playerPos, t.position);
+      if (dist < obj.triggerRadius) {
+        if (uiTimer <= 0) {
+          showUIMessage("Press E to interact", 0.5); // short duration
+        }
+
+        // handle input
+        if (Input.wasKeyPressed("KeyE")) {
+          obj.onInteract();
+        }
       }
     }
 
@@ -825,7 +1228,7 @@ function bootstrap() {
         const t = ecs.transforms.get(e);
         if (!t) continue;
         const dist = vec3.distance(playerPos, t.position);
-        if (dist < win.radius) {
+        if (dist < win.triggerRadius) {
           win.completed = true;
           currentSceneIndex++;
 
@@ -850,7 +1253,7 @@ function bootstrap() {
       if (!t) continue;
 
       const coll = ecs.collectibles.get(e);
-      if (coll && coll.collected) continue;
+      if (coll && coll.isCollected) continue;
 
       const win = ecs.winConditions.get(e);
       if (win && win.completed) continue;
@@ -869,6 +1272,8 @@ function bootstrap() {
 
     gl.bindVertexArray(null);
 
+    // ---------- UI ----------
+    renderUI(dt);
     // Edge-triggered input bookkeeping
     Input.update();
   });
