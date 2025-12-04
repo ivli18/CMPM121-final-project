@@ -105,7 +105,11 @@ I think the biggest change we plan on making in the future is how we distribute 
 
 ### 1. The game uses the same 3D rendering and physics simulation identified by the team for F1 or suitable replacements that still satisfy the F1 requirements.
 
+The 3D rendering and physics simulation still fulfill the F1 requirements and function properly, primarily using OIMO for the physics handling.
+
 ### 2. The game must allow the player to move between scenes (e.g. rooms)
+
+There exist two rooms/scenes within the game and it is currently set up to transition to the second scene when the objective is met in the first room. It will also be mentioned later but player based values can be transferred between scenes (and more added in if necessary), and this is primarily important for allowing various things to carry over between scenes.
 
 ### 3. The game must allow the player to select specific objects in a scene for interaction
 
@@ -117,8 +121,16 @@ The inventory allows players to hold keys (currently only one), and they are tra
 
 ### 5. The game contains at least one physics-based puzzle that is relevant to the player's progress in the game.
 
+An addition to the platforming is a door/wall structure that can be removed/opened if the player has the correct type of key. It is also set up to be color coded, meaning that each unique color of door could only be opened by its respective colored key, but this is not currently utilized much in the actual game.
+
 ### 6. The player can succeed or fail at the physics-based puzzle on the basis of their skill and/or reasoning (rather than luck).
+
+The final goal of the puzzle is blocked by a color door, which requires the player to have a specific colored key to open. Without the key, the platforming to the final goal would not be possible, so if they lack a key they either fail or reset.
 
 ### 7. Via play, the game can reach at least one conclusive ending.
 
+The final end goal of the game is located at the end of the second scene after all the platforming, and the conclusive ending is victory.
+
 ## Reflection
+
+There are some potential issues with how we decided to approach the requirements for F1, mainly being the ambiguity of the definition of a puzzle. Another case of this is with the interactables, which are functional as standalone features, but do not interact with other features. This can all be resolved if necessary, but it depends how we would want to approach it.
