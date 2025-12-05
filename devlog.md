@@ -134,3 +134,45 @@ The final end goal of the game is located at the end of the second scene after a
 ## Reflection
 
 There are some potential issues with how we decided to approach the requirements for F1, mainly being the ambiguity of the definition of a puzzle. Another case of this is with the interactables, which are functional as standalone features, but do not interact with other features. This can all be resolved if necessary, but it depends how we would want to approach it.
+
+---
+
+## F3 Devlog
+
+## Selected requirements
+
+### 1. Language Support (i18n + l10n)
+
+We chose this requirement because it seemed like a simple little challenge to implement, easy enough to implement but also a bit tricky to get fully and properly functional.
+
+### 2. Visual Themes
+
+Changing the theme of the game seemed simple enough with how we handle the graphics side of things, and having it adapt to the host environment didn't seem too difficult either.
+
+### 3. Touchscreen
+
+Implementing a touchscreen sounded simple enough, especially since we already worked with a bit of mobile/touch controls with the D3 assignment.
+
+### 4. abc
+
+xyz
+
+## How we satisfied the software requirements
+
+### 1. Language Support (i18n + l10n)
+
+Language swapping was implemented via a UI button that can be clicked to cycle through the three different languages. This is done using a translation table that provides the text for whichever language it's currently set to, which is most likely the simplest way for a project of this scope. The right to left script was also just a very simple formatting adjustment which gets updated as the languages cycle.
+
+### 2. Visual Themes
+
+We first query the host environment's visual preferences, which we use to adjust the game's visual mappings to match the mode. This affects not only UI elements but also in-game objects and environments, including lighting, textures, and ambiance. All changes are applied on load, based on the polled preference, so the visuals get updated immediately.
+
+### 3. Touchscreen
+
+The game listens for both mouse and touch events on the canvas, and touch input is basically treated as a click at the same spot, so tapping works just like clicking. We use a simple button layout for all inputs, which keeps the UI consistent between desktop and mobile.
+
+### 4. abc
+
+## Reflection
+
+Not much of the design has been changed in F2, so some of the same concerns still persist, but can be worked around a bit easier thanks to some of the additions made in F2. The features implemented in F2 served well as resources for altering the game, but that still means that said alterations needed to be implemented, which is just some simple design.
