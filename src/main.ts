@@ -5,6 +5,176 @@ import { Shader } from "./gl/Shader.ts";
 import { mat4, vec3 } from "gl-matrix";
 import { Input } from "./core/Input.ts";
 
+// Touch Screen Controller Class
+class TouchController {
+  private canvas: HTMLCanvasElement;
+  private jumpButton: HTMLButtonElement;
+  private interactButton: HTMLButtonElement;
+  private upButton: HTMLButtonElement;
+  private downButton: HTMLButtonElement;
+  private leftButton: HTMLButtonElement;
+  private rightButton: HTMLButtonElement;
+
+  private activeDirections = {
+    up: false,
+    down: false,
+    left: false,
+    right: false,
+  };
+
+  constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
+
+    // Create directional buttons
+    this.upButton = this.createButton("↑", "9rem", "4rem", "none");
+    this.downButton = this.createButton("↓", "3rem", "4rem", "none");
+    this.leftButton = this.createButton("←", "6rem", "1rem", "none");
+    this.rightButton = this.createButton("→", "6rem", "7rem", "none");
+
+    // Create jump button
+    this.jumpButton = document.createElement("button");
+    this.jumpButton.textContent = "↑";
+    this.jumpButton.style.cssText = `
+      position: fixed;
+      bottom: 6rem;
+      right: 2rem;
+      width: 70px;
+      height: 70px;
+      font-size: 32px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.3);
+      background: rgba(100,100,100,0.7);
+      color: white;
+      z-index: 1000;
+      touch-action: none;
+    `;
+    document.body.appendChild(this.jumpButton);
+
+    // Create interact button
+    this.interactButton = document.createElement("button");
+    this.interactButton.textContent = "E";
+    this.interactButton.style.cssText = `
+      position: fixed;
+      bottom: 6rem;
+      right: 6rem;
+      width: 70px;
+      height: 70px;
+      font-size: 24px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.3);
+      background: rgba(100,100,200,0.7);
+      color: white;
+      z-index: 1000;
+      touch-action: none;
+    `;
+    document.body.appendChild(this.interactButton);
+
+    this.setupListeners();
+  }
+
+  private createButton(
+    text: string,
+    bottom: string,
+    left: string,
+    transform: string,
+  ): HTMLButtonElement {
+    const button = document.createElement("button");
+    button.textContent = text;
+    button.style.cssText = `
+      position: fixed;
+      bottom: ${bottom};
+      left: ${left};
+      transform: ${transform};
+      width: 60px;
+      height: 60px;
+      font-size: 28px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.3);
+      background: rgba(100,100,100,0.7);
+      color: white;
+      z-index: 1000;
+      touch-action: none;
+    `;
+    document.body.appendChild(button);
+    return button;
+  }
+
+  private setupListeners() {
+    // Directional buttons
+    this.setupDirectionButton(this.upButton, "up");
+    this.setupDirectionButton(this.downButton, "down");
+    this.setupDirectionButton(this.leftButton, "left");
+    this.setupDirectionButton(this.rightButton, "right");
+
+    // Jump button
+    this.jumpButton.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      Input.simulateKeyPress("Space");
+    });
+
+    // Interact button
+    this.interactButton.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      Input.simulateKeyPress("KeyE");
+    });
+  }
+
+  private setupDirectionButton(
+    button: HTMLButtonElement,
+    direction: "up" | "down" | "left" | "right",
+  ) {
+    button.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      this.activeDirections[direction] = true;
+    });
+
+    button.addEventListener("touchend", (e) => {
+      e.preventDefault();
+      this.activeDirections[direction] = false;
+    });
+
+    button.addEventListener("touchcancel", (e) => {
+      e.preventDefault();
+      this.activeDirections[direction] = false;
+    });
+  }
+
+  getMovementVector(): { x: number; z: number } {
+    let x = 0;
+    let z = 0;
+
+    if (this.activeDirections.up) z -= 1;
+    if (this.activeDirections.down) z += 1;
+    if (this.activeDirections.left) x -= 1;
+    if (this.activeDirections.right) x += 1;
+
+    // Normalize diagonal movement
+    if (x !== 0 && z !== 0) {
+      const length = Math.sqrt(x * x + z * z);
+      x /= length;
+      z /= length;
+    }
+
+    return { x, z };
+  }
+
+  updateButtonTheme(theme: Theme) {
+    const bgColor = theme === "dark"
+      ? "rgba(100,100,100,0.7)"
+      : "rgba(150,150,150,0.7)";
+    this.jumpButton.style.background = bgColor;
+    this.upButton.style.background = bgColor;
+    this.downButton.style.background = bgColor;
+    this.leftButton.style.background = bgColor;
+    this.rightButton.style.background = bgColor;
+
+    const interactBg = theme === "dark"
+      ? "rgba(100,100,200,0.7)"
+      : "rgba(120,120,220,0.7)";
+    this.interactButton.style.background = interactBg;
+  }
+}
+
 // OIMO Setup
 declare const OIMO: {
   World: new (config: {
@@ -69,6 +239,8 @@ function applyButtonTheme(theme: Theme) {
 let currentButtonTheme: Theme = getPreferredTheme();
 applyButtonTheme(currentButtonTheme);
 
+let touchController: TouchController | null = null;
+
 // React to OS/browser theme changes
 if (window.matchMedia) {
   const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -76,12 +248,18 @@ if (window.matchMedia) {
   const handleThemeChange = (ev: MediaQueryListEvent | MediaQueryList) => {
     currentButtonTheme = ev.matches ? "dark" : "light";
     applyButtonTheme(currentButtonTheme);
+    if (touchController) {
+      touchController.updateButtonTheme(currentButtonTheme);
+    }
   };
 
   // sync and listen
   handleThemeChange(mq);
   if (mq.addEventListener) {
-    mq.addEventListener("change", handleThemeChange as (e: MediaQueryListEvent) => void);
+    mq.addEventListener(
+      "change",
+      handleThemeChange as (e: MediaQueryListEvent) => void,
+    );
   } else {
     // older browsers
     mq.addListener(handleThemeChange as (e: MediaQueryListEvent) => void);
@@ -254,12 +432,14 @@ const inventory: { held: KeyColor | null } = {
 type Theme = "light" | "dark";
 
 function getPreferredTheme(): Theme {
-  if (globalThis.matchMedia && globalThis.matchMedia("(prefers-color-scheme: dark)").matches) {
+  if (
+    globalThis.matchMedia &&
+    globalThis.matchMedia("(prefers-color-scheme: dark)").matches
+  ) {
     return "dark";
   }
   return "light";
 }
-
 
 // =======================
 // ECS Registry
@@ -604,10 +784,9 @@ function buildScene(
       collect() {
         keyState.collected = true;
         globalState.inventory.held = keyState.color;
-        const t =
-          translations[
-            document.documentElement.lang as keyof typeof translations
-          ] || translations.en;
+        const t = translations[
+          document.documentElement.lang as keyof typeof translations
+        ] || translations.en;
         showUIMessage(t.keyPickup.replace("{color}", keyState.color), 1.5);
         ecs.renderables.delete(keyE);
         ecs.interactables.delete(keyE);
@@ -657,10 +836,9 @@ function buildScene(
       isOpen: doorState.isOpen,
       open() {
         doorState.isOpen = true;
-        const t =
-          translations[
-            document.documentElement.lang as keyof typeof translations
-          ] || translations.en;
+        const t = translations[
+          document.documentElement.lang as keyof typeof translations
+        ] || translations.en;
         showUIMessage(t.doorOpen.replace("{color}", doorState.color), 1.5);
 
         // Remove door from ECS
@@ -671,10 +849,9 @@ function buildScene(
         ecs.interactables.delete(doorE);
       },
       onInteract() {
-        const t =
-          translations[
-            document.documentElement.lang as keyof typeof translations
-          ] || translations.en;
+        const t = translations[
+          document.documentElement.lang as keyof typeof translations
+        ] || translations.en;
 
         if (inventory.held === this.color && !this.isOpen) {
           this.open();
@@ -729,8 +906,16 @@ function showUIMessage(msg: string, duration = 0.5) {
 // =======================
 function bootstrap() {
   Input.init();
-
   const canvas = document.getElementById("game") as HTMLCanvasElement | null;
+  if (!canvas) {
+    throw new Error("Canvas element with id 'game' not found");
+  }
+
+  // Prevent default touch behaviors on canvas
+  canvas.style.touchAction = "none";
+  canvas.style.userSelect = "none";
+
+  touchController = new TouchController(canvas);
   const uiCanvas = document.getElementById("ui") as HTMLCanvasElement;
   const uiCtx = uiCanvas.getContext("2d")!;
 
@@ -748,10 +933,6 @@ function bootstrap() {
     }
   }
 
-  if (!canvas) {
-    throw new Error("Canvas element with id 'game' not found");
-  }
-
   const glctx = new GLContext(canvas);
   const gl = glctx.gl;
 
@@ -765,34 +946,34 @@ function bootstrap() {
   let currentTheme: Theme = getPreferredTheme();
 
   function getAmbientThemeColor(theme: Theme): [number, number, number] {
-    return theme === "dark" 
-    ? [0.6, 0.6, 0.7]   // Dark theme
-    : [1.0, 1.0, 1.0];  // Light theme
+    return theme === "dark"
+      ? [0.6, 0.6, 0.7] // Dark theme
+      : [1.0, 1.0, 1.0]; // Light theme
   }
 
   function getClearThemeColor(theme: Theme): [number, number, number, number] {
-    return theme === "dark" 
-    ? [0.1, 0.1, 0.15, 1.0]  // Dark theme
-    : [0.9, 0.9, 1.0, 1.0];  // Light theme
+    return theme === "dark"
+      ? [0.1, 0.1, 0.15, 1.0] // Dark theme
+      : [0.9, 0.9, 1.0, 1.0]; // Light theme
   }
 
   function getUIForegroundColor(theme: Theme): string {
     return theme === "dark"
-    ? "#ffffff"   // Dark theme
-    : "#111111";  // Light theme
+      ? "#ffffff" // Dark theme
+      : "#111111"; // Light theme
   }
 
   let uiTextColor = getUIForegroundColor(currentTheme);
 
   // React to system theme changes in real-time
-  if (globalThis.matchMedia) { 
+  if (globalThis.matchMedia) {
     const mq = globalThis.matchMedia("(prefers-color-scheme: dark)");
     const themeChangeHandler = (e: MediaQueryListEvent) => {
       currentTheme = e.matches ? "dark" : "light";
       uiTextColor = getUIForegroundColor(currentTheme);
     };
 
-    // Initial sync 
+    // Initial sync
     themeChangeHandler(mq as unknown as MediaQueryListEvent);
 
     // Listen for changes
@@ -800,11 +981,10 @@ function bootstrap() {
   }
 
   function clearWithTheme() {
-  const [r, g, b, a] = getClearThemeColor(currentTheme);
-  gl.clearColor(r, g, b, a);
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-}
-
+    const [r, g, b, a] = getClearThemeColor(currentTheme);
+    gl.clearColor(r, g, b, a);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  }
 
   // ---------- Physics World ----------
   let world = new OIMO.World({
@@ -826,9 +1006,31 @@ function bootstrap() {
   // Cube geometry shared by player/platforms/collectibles
   const cubePositions = [
     // front
-    -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5,
+    -0.5,
+    -0.5,
+    0.5,
+    0.5,
+    -0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    -0.5,
+    0.5,
+    0.5,
     // back
-    -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, -0.5,
+    -0.5,
+    -0.5,
+    -0.5,
+    0.5,
+    -0.5,
+    -0.5,
+    0.5,
+    0.5,
+    -0.5,
+    -0.5,
+    0.5,
+    -0.5,
   ];
   const cubeIndices = [
     0,
@@ -872,26 +1074,92 @@ function bootstrap() {
   // Player colors
   const playerCubeColors = [
     // front (red-ish)
-    1, 0, 0, 1, 0.3, 0.3, 1, 0.3, 0.3, 1, 0, 0,
+    1,
+    0,
+    0,
+    1,
+    0.3,
+    0.3,
+    1,
+    0.3,
+    0.3,
+    1,
+    0,
+    0,
     // back (orange-ish)
-    1, 0.6, 0.2, 1, 0.8, 0.3, 1, 0.8, 0.3, 1, 0.6, 0.2,
+    1,
+    0.6,
+    0.2,
+    1,
+    0.8,
+    0.3,
+    1,
+    0.8,
+    0.3,
+    1,
+    0.6,
+    0.2,
   ];
 
   // Collectible colors (cyan)
   const collectibleCubeColors = [
     // front
-    0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1,
+    0,
+    1,
+    1,
+    0,
+    1,
+    1,
+    0,
+    1,
+    1,
+    0,
+    1,
+    1,
     // back
-    0, 0.8, 0.8, 0, 0.8, 0.8, 0, 0.8, 0.8, 0, 0.8, 0.8,
+    0,
+    0.8,
+    0.8,
+    0,
+    0.8,
+    0.8,
+    0,
+    0.8,
+    0.8,
+    0,
+    0.8,
+    0.8,
   ];
 
   // Interactables
 
   const doorRedColors = [
     // front
-    1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,
+    1,
+    0,
+    0,
+    1,
+    0,
+    0,
+    1,
+    0,
+    0,
+    1,
+    0,
+    0,
     // back
-    1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,
+    1,
+    0,
+    0,
+    1,
+    0,
+    0,
+    1,
+    0,
+    0,
+    1,
+    0,
+    0,
   ];
 
   const doorRedCube = createDrawable(
@@ -939,9 +1207,31 @@ function bootstrap() {
   // Platform colors (gray)
   const platformCubeColors = [
     // front
-    0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
     // back
-    0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
   ];
 
   const playerCube = createDrawable(
@@ -969,15 +1259,41 @@ function bootstrap() {
   // Win condition pyramid
   const winconPositions = [
     // base
-    -0.3, 0, -0.3, 0.3, 0, -0.3, 0.3, 0, 0.3, -0.3, 0, 0.3,
+    -0.3,
+    0,
+    -0.3,
+    0.3,
+    0,
+    -0.3,
+    0.3,
+    0,
+    0.3,
+    -0.3,
+    0,
+    0.3,
     // apex
-    0, 0.6, 0,
+    0,
+    0.6,
+    0,
   ];
   const winconColors = [
     // base (yellow)
-    1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0,
+    1,
+    1,
+    0,
+    1,
+    1,
+    0,
+    1,
+    1,
+    0,
+    1,
+    1,
+    0,
     // apex
-    1, 1, 0.5,
+    1,
+    1,
+    0.5,
   ];
   const winconIndices = [
     0,
@@ -1136,10 +1452,11 @@ function bootstrap() {
 
     // ---------- INPUT → Physics (movement & jump) ----------
     const body = playerPhys.body;
-    const vel =
-      typeof body.getLinearVelocity === "function"
-        ? body.getLinearVelocity()
-        : body.linearVelocity;
+    const vel = typeof body.getLinearVelocity === "function"
+      ? body.getLinearVelocity()
+      : body.linearVelocity;
+    const touchMovement = touchController?.getMovementVector() ??
+      { x: 0, z: 0 };
     let vx = 0;
     let vz = 0;
 
@@ -1153,6 +1470,9 @@ function bootstrap() {
     if (Input.isKeyDown("ArrowRight") || Input.isKeyDown("KeyD")) {
       vx += moveSpeed;
     }
+
+    vx += touchMovement.x * moveSpeed;
+    vz += touchMovement.z * moveSpeed;
 
     vel.x = vx;
     vel.z = vz;
@@ -1194,10 +1514,9 @@ function bootstrap() {
     playerGrounded = false;
     if (playerTransform && playerPhys) {
       const body = playerPhys.body;
-      const vel2 =
-        typeof body.getLinearVelocity === "function"
-          ? body.getLinearVelocity()
-          : body.linearVelocity;
+      const vel2 = typeof body.getLinearVelocity === "function"
+        ? body.getLinearVelocity()
+        : body.linearVelocity;
       const velY = vel2.y;
 
       for (const [, platform] of ecs.platforms) {
@@ -1258,10 +1577,9 @@ function bootstrap() {
       const dist = vec3.distance(playerPos, t.position);
       if (dist < obj.triggerRadius) {
         if (uiTimer <= 0) {
-          const t =
-            translations[
-              document.documentElement.lang as keyof typeof translations
-            ] || translations["en"];
+          const t = translations[
+            document.documentElement.lang as keyof typeof translations
+          ] || translations["en"];
           showUIMessage(t.interact, 0.5);
         }
 

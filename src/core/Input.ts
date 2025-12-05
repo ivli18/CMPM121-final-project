@@ -27,6 +27,9 @@ export class Input {
 
     // can expand with mouse and gamepad events later
   }
+  static simulateKeyPress(key: string) {
+    this.keysPressed.add(key);
+  }
   static update(): void {
     this.keysPressed.clear();
     this.keysReleased.clear();
