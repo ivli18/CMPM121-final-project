@@ -42,6 +42,52 @@ button.id = "langBtn";
 button.textContent = "Language";
 document.body.appendChild(button);
 
+// Basic layout/styling that doesn't depend on theme
+button.style.position = "fixed";
+button.style.top = "1rem";
+button.style.left = "1rem";
+button.style.padding = "0.4rem 0.8rem";
+button.style.borderRadius = "0.4rem";
+button.style.border = "none";
+button.style.cursor = "pointer";
+button.style.fontFamily = "system-ui, sans-serif";
+button.style.zIndex = "10";
+
+// Theme-aware styling
+function applyButtonTheme(theme: Theme) {
+  if (theme === "dark") {
+    button.style.backgroundColor = "#222222dd";
+    button.style.color = "#f5f5f5";
+    button.style.boxShadow = "0 0 8px rgba(0, 0, 0, 0.7)";
+  } else {
+    button.style.backgroundColor = "#ffffffdd";
+    button.style.color = "#111111";
+    button.style.boxShadow = "0 0 8px rgba(0, 0, 0, 0.15)";
+  }
+}
+
+let currentButtonTheme: Theme = getPreferredTheme();
+applyButtonTheme(currentButtonTheme);
+
+// React to OS/browser theme changes
+if (window.matchMedia) {
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+
+  const handleThemeChange = (ev: MediaQueryListEvent | MediaQueryList) => {
+    currentButtonTheme = ev.matches ? "dark" : "light";
+    applyButtonTheme(currentButtonTheme);
+  };
+
+  // sync and listen
+  handleThemeChange(mq);
+  if (mq.addEventListener) {
+    mq.addEventListener("change", handleThemeChange as (e: MediaQueryListEvent) => void);
+  } else {
+    // older browsers
+    mq.addListener(handleThemeChange as (e: MediaQueryListEvent) => void);
+  }
+}
+
 const translations = {
   en: {
     button: "Language",
@@ -112,8 +158,12 @@ precision highp float;
 in vec3 vColor;
 out vec4 outColor;
 
+uniform vec3 uAmbientColor;
+
 void main() {
-  outColor = vec4(vColor, 1.0);
+  // Simple "lighting": base color modulated by ambient theme color
+  vec3 litColor = vColor * uAmbientColor;
+  outColor = vec4(litColor, 1.0);
 }
 `;
 
@@ -199,6 +249,17 @@ const globalState = {
 const inventory: { held: KeyColor | null } = {
   held: null,
 };
+
+// Light and Dark Theme Types
+type Theme = "light" | "dark";
+
+function getPreferredTheme(): Theme {
+  if (globalThis.matchMedia && globalThis.matchMedia("(prefers-color-scheme: dark)").matches) {
+    return "dark";
+  }
+  return "light";
+}
+
 
 // =======================
 // ECS Registry
@@ -677,7 +738,7 @@ function bootstrap() {
     uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
     if (uiMessage) {
       uiCtx.font = "20px Arial";
-      uiCtx.fillStyle = "white";
+      uiCtx.fillStyle = uiTextColor;
       uiCtx.textAlign = "center";
       uiCtx.fillText(uiMessage, uiCanvas.width / 2, uiCanvas.height - 50);
       uiTimer -= dt;
@@ -697,6 +758,53 @@ function bootstrap() {
   const shader = new Shader(gl, VERT_SRC, FRAG_SRC);
   const uMVP = shader.getUniformLocation("uMVP");
   if (!uMVP) throw new Error("Failed to get uMVP uniform");
+  const uAmbientColor = shader.getUniformLocation("uAmbientColor");
+  if (!uAmbientColor) throw new Error("Failed to get uAmbientColor uniform");
+
+  // === Theme & Lighting Setup =====
+  let currentTheme: Theme = getPreferredTheme();
+
+  function getAmbientThemeColor(theme: Theme): [number, number, number] {
+    return theme === "dark" 
+    ? [0.6, 0.6, 0.7]   // Dark theme
+    : [1.0, 1.0, 1.0];  // Light theme
+  }
+
+  function getClearThemeColor(theme: Theme): [number, number, number, number] {
+    return theme === "dark" 
+    ? [0.1, 0.1, 0.15, 1.0]  // Dark theme
+    : [0.9, 0.9, 1.0, 1.0];  // Light theme
+  }
+
+  function getUIForegroundColor(theme: Theme): string {
+    return theme === "dark"
+    ? "#ffffff"   // Dark theme
+    : "#111111";  // Light theme
+  }
+
+  let uiTextColor = getUIForegroundColor(currentTheme);
+
+  // React to system theme changes in real-time
+  if (globalThis.matchMedia) { 
+    const mq = globalThis.matchMedia("(prefers-color-scheme: dark)");
+    const themeChangeHandler = (e: MediaQueryListEvent) => {
+      currentTheme = e.matches ? "dark" : "light";
+      uiTextColor = getUIForegroundColor(currentTheme);
+    };
+
+    // Initial sync 
+    themeChangeHandler(mq as unknown as MediaQueryListEvent);
+
+    // Listen for changes
+    mq.addEventListener("change", themeChangeHandler);
+  }
+
+  function clearWithTheme() {
+  const [r, g, b, a] = getClearThemeColor(currentTheme);
+  gl.clearColor(r, g, b, a);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+}
+
 
   // ---------- Physics World ----------
   let world = new OIMO.World({
@@ -1021,7 +1129,7 @@ function bootstrap() {
   let playerGrounded = false;
 
   const engine = new Engine((dt: number) => {
-    glctx.clear();
+    clearWithTheme();
 
     const playerPhys = ecs.physicsBodies.get(playerEntity);
     if (!playerPhys) return;
@@ -1189,6 +1297,8 @@ function bootstrap() {
     // ---------- Camera ----------
     updateCamera();
     shader.use();
+    const [ar, ag, ab] = getAmbientThemeColor(currentTheme);
+    gl.uniform3f(uAmbientColor, ar, ag, ab);
 
     // ---------- Render ----------
     for (const [e, rend] of ecs.renderables) {
