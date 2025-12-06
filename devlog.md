@@ -153,9 +153,9 @@ Changing the theme of the game seemed simple enough with how we handle the graph
 
 Implementing a touchscreen sounded simple enough, especially since we already worked with a bit of mobile/touch controls with the D3 assignment.
 
-### 4. abc
+### 4. Save System
 
-xyz
+A save system has a lot of usability within our game, and it was also seemed like one of easier requirements. Implementation of this system should also be easy since we already have a lot of the classes in place already.
 
 ## How we satisfied the software requirements
 
@@ -171,7 +171,9 @@ We first query the host environment's visual preferences, which we use to adjust
 
 The game listens for both mouse and touch events on the canvas, and touch input is basically treated as a click at the same spot, so tapping works just like clicking. We use a simple button layout for all inputs, which keeps the UI consistent between desktop and mobile.
 
-### 4. abc
+### 4. Save System
+
+Our project implements a full save/load system that stores all essential game state for persistent data storage. The system serializes the important values and elements within a scene whenever one of them gets changed in gameplay. To reload, the engine reconstructs the entities, bodies, and their transformations, so the world accurately reflects the saved data.
 
 ## Reflection
 
