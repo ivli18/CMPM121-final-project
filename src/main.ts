@@ -199,6 +199,7 @@ interface OIMOBody {
   getLinearVelocity?(): { x: number; y: number; z: number };
   setLinearVelocity?(v: { x: number; y: number; z: number }): void;
   getPosition(): { x: number; y: number; z: number };
+  setPosition?(v: { x: number; y: number; z: number }): void;
   linearVelocity: { x: number; y: number; z: number }; // fallback
 }
 
@@ -382,6 +383,7 @@ interface Interactable extends ProximityTrigger {
 }
 
 interface Collectible extends ProximityTrigger {
+  id: string;
   isCollected: boolean;
 }
 
@@ -420,6 +422,18 @@ const globalState = {
   keys: new Map<string, GlobalKeyState>(),
   doors: new Map<string, GlobalDoorState>(),
 };
+
+interface SaveGameV1 {
+  version: 1;
+  sceneIndex: number;
+  playerPos: [number, number, number];
+  inventoryHeld: KeyColor | null;
+  keys: Record<string, GlobalKeyState>;
+  doors: Record<string, GlobalDoorState>;
+  collectibles: Record<string, boolean>;
+}
+
+const globalCollectibles = new Map<string, boolean>();
 
 // Persistent Inventory
 const inventory: { held: KeyColor | null } = {
@@ -673,6 +687,7 @@ function buildScene(
   meshes: SharedMeshes,
   config: SceneConfig,
   gridSize: number,
+  sceneIndex: number,
 ): SceneBuildResult {
   // ----- Player -----
   const playerE = ecs.createEntity();
@@ -743,7 +758,19 @@ function buildScene(
   ecs.winConditions.set(winE, { completed: false, triggerRadius: 1.0 });
 
   // ----- Collectibles -----
-  for (const pos of config.collectibles) {
+  config.collectibles.forEach((pos, index) => {
+    const collectibleId = `scene${sceneIndex}_c${index}`;
+
+    // If we've already collected this in a previous session, skip spawning it
+    if (globalCollectibles.get(collectibleId)) {
+      return;
+    }
+
+    // Ensure default state exists
+    if (!globalCollectibles.has(collectibleId)) {
+      globalCollectibles.set(collectibleId, false);
+    }
+
     const cE = ecs.createEntity();
     const t: Transform = {
       position: vec3.fromValues(pos[0], pos[1], pos[2]),
@@ -755,8 +782,14 @@ function buildScene(
 
     ecs.transforms.set(cE, t);
     ecs.renderables.set(cE, { drawable: meshes.collectibleCube });
-    ecs.collectibles.set(cE, { isCollected: false, triggerRadius: 1.0 });
-  }
+
+    ecs.collectibles.set(cE, {
+      id: collectibleId,
+      isCollected: false,
+      triggerRadius: 1.0,
+    });
+  });
+
 
   // ----- Keys -----
   for (const keyData of config.keys ?? []) {
@@ -929,6 +962,130 @@ function bootstrap() {
   touchController = new TouchController(canvas);
   const uiCanvas = document.getElementById("ui") as HTMLCanvasElement;
   const uiCtx = uiCanvas.getContext("2d")!;
+  
+  // Save the current game state key
+  const SAVE_KEY = "platform_oimo_save_v1";
+
+  // Save the current game state to localStorage
+  function saveGame() {
+    const playerPhys = ecs.physicsBodies.get(playerEntity);
+    const playerTransform = ecs.transforms.get(playerEntity);
+    if (!playerPhys || !playerTransform) return;
+
+    const body = playerPhys.body;
+    const vel =
+      typeof body.getLinearVelocity === "function"
+        ? body.getLinearVelocity()
+        : body.linearVelocity;
+
+    const save: SaveGameV1 = {
+      version: 1,
+      sceneIndex: currentSceneIndex,
+      playerPos: [
+        playerTransform.position[0],
+        playerTransform.position[1],
+        playerTransform.position[2],
+      ],
+      inventoryHeld: inventory.held,
+      keys: {},
+      doors: {},
+      collectibles: {},
+    };
+
+    for (const [id, state] of globalState.keys) {
+      save.keys[id] = { ...state };
+    }
+    for (const [id, state] of globalState.doors) {
+      save.doors[id] = { ...state };
+    }
+    for (const [id, collected] of globalCollectibles) {
+      save.collectibles[id] = collected;
+    }
+
+    localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+    showUIMessage("Game saved", 1.0);
+  }
+
+  // Load the game state from localStorage
+  function loadGame() {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) {
+      showUIMessage("No save found", 1.0);
+      return;
+    }
+
+    let data: SaveGameV1;
+    try {
+      data = JSON.parse(raw) as SaveGameV1;
+    } catch (e) {
+      console.error("Failed to parse save data", e);
+      showUIMessage("Save data corrupted", 1.0);
+      return;
+    }
+
+    if (data.version !== 1) {
+      showUIMessage("Save version mismatch", 1.0);
+      return;
+    }
+
+    // Restore global & inventory state BEFORE rebuilding the scene
+    inventory.held = data.inventoryHeld;
+    globalState.inventory.held = data.inventoryHeld;
+
+    globalState.keys.clear();
+    for (const id in data.keys) {
+      globalState.keys.set(id, data.keys[id]);
+    }
+
+    globalState.doors.clear();
+    for (const id in data.doors) {
+      globalState.doors.set(id, data.doors[id]);
+    }
+
+    globalCollectibles.clear();
+    for (const id in data.collectibles) {
+      globalCollectibles.set(id, data.collectibles[id]);
+    }
+
+    // Restore scene
+    currentSceneIndex = data.sceneIndex;
+    world = loadScene(currentSceneIndex);
+
+    // Reposition player
+    const playerPhys = ecs.physicsBodies.get(playerEntity);
+    const playerTransform = ecs.transforms.get(playerEntity);
+    if (playerPhys && playerTransform) {
+      const [px, py, pz] = data.playerPos;
+      vec3.set(playerTransform.position, px, py, pz);
+      updateTransformMatrix(playerTransform);
+
+      const body = playerPhys.body;
+      const p = body.getPosition();
+      p.x = px;
+      p.y = py;
+      p.z = pz;
+    }
+    showUIMessage("Game loaded", 1.0);
+  }
+
+// Start a completely new game
+function newGame() {
+  localStorage.removeItem(SAVE_KEY);
+
+  inventory.held = null;
+  globalState.inventory.held = null;
+
+  globalState.keys.clear();
+  globalState.doors.clear();
+  globalCollectibles.clear();
+
+  currentSceneIndex = 0;
+  world = loadScene(currentSceneIndex);
+
+  showUIMessage("New game", 1.0);
+}
+
+
 
   function renderUI(dt: number) {
     uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
@@ -1330,6 +1487,7 @@ function bootstrap() {
       meshes,
       scenes[sceneIndex],
       gridSize,
+      sceneIndex,
     );
 
     playerEntity = result.playerEntity;
@@ -1499,9 +1657,11 @@ function bootstrap() {
       const dist = vec3.distance(playerPos, t.position);
       if (dist < coll.triggerRadius) {
         coll.isCollected = true;
+        globalCollectibles.set(coll.id, true);  // <--- persist it
         console.log("Collectible picked up:", e);
       }
     }
+
 
     // ---------- Interactable check (Keys / Doors) ----------
     for (const [e, obj] of ecs.interactables) {
@@ -1583,6 +1743,17 @@ function bootstrap() {
     gl.bindVertexArray(null);
 
     // ---------- UI ----------
+    // Save / Load / New Game shortcuts
+    if (Input.wasKeyPressed("KeyP")) {
+      saveGame();   // P = save
+    }
+    if (Input.wasKeyPressed("KeyL")) {
+      loadGame();   // L = load
+    }
+    if (Input.wasKeyPressed("KeyN")) {
+      newGame();    // N = new game
+    }
+
     renderUI(dt);
     // Edge-triggered input bookkeeping
     Input.update();
